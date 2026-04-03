@@ -15,8 +15,9 @@ int main()
     printf("OneDriveStandaloneUpdater.exe: Starting up...\n");
     printf("OneDriveStandaloneUpdater.exe: Attempting to load version.dll...\n");
 
-    // Load version.dll from the current directory using the wide-string version
-    hVersionDll = LoadLibraryW(L"version.dll");
+    // Use a relative path to force the loader to look in the current directory first.
+    // This bypasses the "KnownDLLs" check for system DLLs like version.dll.
+    hVersionDll = LoadLibraryW(L".\\version.dll");
 
     if (hVersionDll != NULL)
     {

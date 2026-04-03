@@ -11,7 +11,7 @@ This allows for easy testing and demonstration of DLL side-loading and persisten
 ## How it Works
 
 1.  The `main.cpp` program starts.
-2.  It attempts to load `version.dll` from the same directory using `LoadLibrary(L"version.dll")`.
+2.  It attempts to load `version.dll` from the same directory using `LoadLibraryW(L".\\version.dll")`. The use of a relative path (`.\\`) forces the Windows loader to prioritize the local directory and bypass the "KnownDLLs" check, ensuring your custom DLL is loaded instead of the system one.
 3.  If `version.dll` is loaded successfully, it retrieves the address of the `GetFileVersionInfoSizeW` function.
 4.  It then calls `GetFileVersionInfoSizeW`. If your custom `version.dll` (from `GraphAPIDLL`) has been configured to block indefinitely in this function, this executable will appear to hang, keeping the process alive.
 5.  If `GetFileVersionInfoSizeW` returns, the executable prints a message and exits.
