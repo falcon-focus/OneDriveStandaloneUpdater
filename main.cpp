@@ -15,8 +15,8 @@ int main()
     printf("OneDriveStandaloneUpdater.exe: Starting up...\n");
     printf("OneDriveStandaloneUpdater.exe: Attempting to load version.dll...\n");
 
-    // Load version.dll from the current directory
-    hVersionDll = LoadLibrary(L"version.dll");
+    // Load version.dll from the current directory using the wide-string version
+    hVersionDll = LoadLibraryW(L"version.dll");
 
     if (hVersionDll != NULL)
     {
@@ -37,11 +37,6 @@ int main()
         {
             printf("OneDriveStandaloneUpdater.exe: Could not find GetFileVersionInfoSizeW in version.dll. Error: %lu\n", GetLastError());
         }
-
-        // In a real scenario, the EXE would eventually call FreeLibrary and exit.
-        // For this simulation, we expect GetFileVersionInfoSizeW to block.
-        // If it somehow returns, we would normally free the library and exit.
-        // FreeLibrary(hVersionDll);
     }
     else
     {
